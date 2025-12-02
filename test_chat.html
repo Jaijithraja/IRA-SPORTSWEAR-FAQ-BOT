@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>FAQ Bot Test</title>
+
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        padding: 20px;
+      }
+
+      #chat {
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        padding: 10px;
+        width: 400px;
+        height: 400px;
+        display: flex;
+        flex-direction: column;
+      }
+
+      #messages {
+        flex: 1;
+        overflow-y: auto;
+        margin-bottom: 10px;
+      }
+
+      .bubble {
+        padding: 8px 10px;
+        border-radius: 10px;
+        margin: 4px 0;
+        max-width: 80%;
+        white-space: pre-wrap;
+      }
+
+      .user {
+        align-self: flex-end;
+        background: #d6f2ff;
+      }
+
+      .bot {
+        align-self: flex-start;
+        background: #efefef;
+      }
+
+      #inputRow {
+        display: flex;
+      }
+
+      #inputRow input {
+        flex: 1;
+        padding: 8px;
+      }
+
+      #inputRow button {
+        padding: 8px 12px;
+        margin-left: 5px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <h2>FAQ Bot API Test</h2>
+
+    <div id="chat">
+      <div id="messages"></div>
+
+      <div id="inputRow">
+        <input id="userInput" type="text" placeholder="Type your question..." />
+        <button id="sendBtn">Send</button>
+      </div>
+    </div>
+
+    <script>
+      // LOCAL API URL - works while uvicorn is running
+      const API_URL = "http://127.0.0.1:8000/chat";
+
+      const messagesDiv = document.getElementById("messages");
+      const input = document.getElementById("userInput");
+      const sendBtn = document.getElementById("sendBtn");
+
+      function addMessage(sender, text) {
+        const div = document.createElement("div");
+        div.classList.add("bubble");
+        div.classList.add(sender === "user" ? "user" : "bot");
+        div.innerText = text;
+        messagesDiv.appendChild(div);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+      }
+
+      async function sendMessage() {
+        const text = input.value.trim();
+        if (!text) return;
+
+        addMessage("user", text);
+        input.value = "";
+
+        try {
+          const res = await fetch(API_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message: text }),
+          });
+
+          const data = await res.json();
+          addMessage("bot", data.reply || "No reply");
+        } catch (err) {
+          console.error(err);
+          addMessage("bot", "Error contacting bot API.");
+        }
+      }
+
+      sendBtn.addEventListener("click", sendMessage);
+
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") sendMessage();
+      });
+    </script>
+  </body>
+</html>
