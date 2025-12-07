@@ -20,10 +20,10 @@ class FAQBot:
         self.questions = self.faq_df["question"].astype(str).tolist()
         self.answers = self.faq_df["answer"].astype(str).tolist()
 
-        # Load embedding model
+        # Embedding model
         self.model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
 
-        # Precompute embeddings for all FAQ questions
+        # Precompute embeddings
         self.question_embeddings = self.model.encode(
             self.questions,
             normalize_embeddings=True,
@@ -32,37 +32,29 @@ class FAQBot:
 
     def answer(self, user_query: str, threshold: float = 0.55) -> str:
         """
-        Return the answer of the most similar FAQ question.
-        If similarity is too low, reply that the bot is not sure.
+        Return only the matched answer.
+        If similarity is too low, reply with a fallback message.
         """
         user_query = user_query.strip()
         if not user_query:
             return "Please type a question related to jerseys, orders, sizes, delivery or customization."
 
-        # Embed query
+        # Embed user question
         query_emb = self.model.encode(
             [user_query],
             normalize_embeddings=True,
             convert_to_numpy=True
         )
 
-        # Compute cosine similarity with all FAQ questions
+        # Similarity scores
         scores = cosine_similarity(query_emb, self.question_embeddings)[0]
         best_index = int(np.argmax(scores))
         best_score = float(scores[best_index])
 
+        # Low confidence fallback
         if best_score < threshold:
-            return (
-                "I am not fully sure about that.\n"
-                "Please try asking about sizes, customization, bulk orders, delivery, payment or returns."
-            )
+            return "I am not sure about that. Try asking about sizes, customization, bulk orders, delivery, payment or returns."
 
-        matched_question = self.questions[best_index]
+        # Return only the answer
         matched_answer = self.answers[best_index]
-
-        reply = (
-            f"Here is the closest match I found:\n\n"
-            f"**Q:** {matched_question}\n"
-            f"**A:** {matched_answer}"
-        )
-        return reply
+        return matched_answer
