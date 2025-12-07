@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from sentence_transformers import SentenceTransformer
+from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
 
@@ -20,41 +20,36 @@ class FAQBot:
         self.questions = self.faq_df["question"].astype(str).tolist()
         self.answers = self.faq_df["answer"].astype(str).tolist()
 
-        # Embedding model
-        self.model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
-
-        # Precompute embeddings
-        self.question_embeddings = self.model.encode(
-            self.questions,
-            normalize_embeddings=True,
-            convert_to_numpy=True
+        # Build TF-IDF vectorizer on questions
+        # Using unigrams + bigrams for better matching
+        self.vectorizer = TfidfVectorizer(
+            ngram_range=(1, 2),
+            stop_words="english"
         )
+        self.question_vectors = self.vectorizer.fit_transform(self.questions)
 
-    def answer(self, user_query: str, threshold: float = 0.55) -> str:
+    def answer(self, user_query: str, threshold: float = 0.2) -> str:
         """
-        Return only the matched answer.
-        If similarity is too low, reply with a fallback message.
+        Return the answer of the most similar FAQ question using TF-IDF.
+        If similarity is too low, reply that the bot is not sure.
         """
         user_query = user_query.strip()
         if not user_query:
             return "Please type a question related to jerseys, orders, sizes, delivery or customization."
 
-        # Embed user question
-        query_emb = self.model.encode(
-            [user_query],
-            normalize_embeddings=True,
-            convert_to_numpy=True
-        )
+        # Vectorize query
+        query_vec = self.vectorizer.transform([user_query])
 
-        # Similarity scores
-        scores = cosine_similarity(query_emb, self.question_embeddings)[0]
+        # Compute cosine similarity with all FAQ questions
+        scores = cosine_similarity(query_vec, self.question_vectors)[0]
         best_index = int(np.argmax(scores))
         best_score = float(scores[best_index])
 
-        # Low confidence fallback
         if best_score < threshold:
-            return "I am not sure about that. Try asking about sizes, customization, bulk orders, delivery, payment or returns."
+            return (
+                "I am not fully sure about that.\n"
+                "Please try asking about sizes, customization, bulk orders, delivery, payment or returns."
+            )
 
-        # Return only the answer
         matched_answer = self.answers[best_index]
         return matched_answer
