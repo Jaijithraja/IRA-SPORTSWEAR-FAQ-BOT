@@ -2,13 +2,14 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from faq_bot import FAQBot
-
+from fastapi.staticfiles import StaticFiles
 # Initialize app
 app = FastAPI(title="IRA Sportswear FAQ API")
 
+app.mount("/static",StaticFiles(directory=os.path.join(BASE_DIR,"static")),name="static") # type: ignore
+
 # Load FAQ bot ONCE at startup
 faq_bot = FAQBot("faq(1).xlsx")
-
 # CORS (open for now, restrict later)
 app.add_middleware(
     CORSMiddleware,
