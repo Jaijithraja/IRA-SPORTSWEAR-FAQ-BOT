@@ -3,10 +3,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from faq_bot import FAQBot
 from fastapi.staticfiles import StaticFiles
+import os
 # Initialize app
 app = FastAPI(title="IRA Sportswear FAQ API")
 
-app.mount("/static",StaticFiles(directory=os.path.join(BASE_DIR,"static")),name="static") # type: ignore
+# Define BASE_DIR
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+app.mount("/static",StaticFiles(directory=os.path.join(BASE_DIR,"static")),name="static") 
 
 # Load FAQ bot ONCE at startup
 faq_bot = FAQBot("faq(1).xlsx")
